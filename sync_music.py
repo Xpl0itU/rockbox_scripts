@@ -17,7 +17,7 @@ def sync_music(source_directory: str, target_directory: str) -> None:
             source=source_directory,
             destination=tmpdir,
             sync_source_contents=True,
-            options=["-azP", "--delete"],
+            options=["-azhP", "--delete"],
         )
 
         print("Extracting covers...")
@@ -30,7 +30,7 @@ def sync_music(source_directory: str, target_directory: str) -> None:
             source=tmpdir,
             destination=target_directory,
             sync_source_contents=True,
-            options=["-avzP", "--delete"],
+            options=["-avzhP", "--delete"],
         )
 
 
