@@ -21,9 +21,9 @@ def sync_music(source_directory: str, target_directory: str) -> None:
         )
 
         print("Extracting covers...")
-        restore_backups(source_directory)
-        organize_music_files(source_directory)
-        process_images(source_directory)
+        restore_backups(tmpdir)
+        organize_music_files(tmpdir)
+        process_images(tmpdir)
 
         print("Copying files to target directory...")
         sysrsync.run(
