@@ -4,6 +4,7 @@ from album_art_fix import (
     restore_backups,
     organize_music_files,
     process_images,
+    clear_temp_directory,
 )
 
 
@@ -24,6 +25,7 @@ def sync_music(source_directory: str, target_directory: str) -> None:
         restore_backups(tmpdir)
         organize_music_files(tmpdir)
         process_images(tmpdir)
+        clear_temp_directory()
 
         print("Copying files to target directory...")
         sysrsync.run(

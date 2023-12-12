@@ -8,6 +8,11 @@ from PIL import Image, UnidentifiedImageError
 from eyed3 import id3
 from mutagen import File
 
+SUPPORTED_EXTENSIONS = (".mp3", ".flac")
+IMAGE_EXTENSIONS = (".jpg", ".jpeg", ".png")
+COVER_FILENAME = "cover.jpg"
+TEMP_FOLDER_NAME = "cover_extraction_temp"
+
 
 def sanitize_filename(filename):
     return "".join(
@@ -16,26 +21,82 @@ def sanitize_filename(filename):
 
 
 def get_album_tag(file_path):
-    if file_path.endswith(".mp3"):
-        audio = id3.Tag()
-        audio.parse(file_path)
-        return audio.album
+    try:
+        if file_path.endswith(".mp3"):
+            audio = id3.Tag()
+            audio.parse(file_path)
+            return audio.album
 
-    if file_path.endswith(".flac"):
-        try:
+        if file_path.endswith(".flac"):
             audio = File(file_path)
             album_tag = audio.get("album")
             return album_tag[0] if isinstance(album_tag, list) else album_tag
+    except Exception as e:
+        print(f"Error reading metadata for {file_path}: {e}")
+        return None
+
+
+def handle_existing_images(directory, image_files):
+    print("Image files found in the directory:")
+    for i, image_file in enumerate(image_files, start=1):
+        print(f"{i}. {image_file}")
+
+    selected_index = int(input("Enter the number of the image file: ")) - 1
+    selected_image_file = image_files[selected_index]
+
+    cover_dest_path = os.path.join(directory, COVER_FILENAME)
+    shutil.move(os.path.join(directory, selected_image_file), cover_dest_path)
+    print(f"Selected image file '{selected_image_file}' set as cover image.")
+
+    # Delete other image files
+    for image_file in image_files:
+        if image_file != selected_image_file:
+            os.remove(os.path.join(directory, image_file))
+            print(f"Deleted redundant image file '{image_file}'.")
+
+
+def handle_audio_files(directory, temp_folder):
+    audio_files = [
+        file for file in os.listdir(directory) if file.endswith(SUPPORTED_EXTENSIONS)
+    ]
+    if audio_files:
+        audio_file_path = os.path.join(directory, audio_files[0])
+        temp_folder_path = os.path.join(temp_folder, TEMP_FOLDER_NAME)
+
+        try:
+            os.makedirs(temp_folder_path, exist_ok=True)
+
+            encoding = sys.stdout.encoding or "utf-8"
+            temp_cover_path = os.path.join(temp_folder_path, COVER_FILENAME)
+            print(f"Running ffmpeg command for '{audio_file_path}'")
+            result = subprocess.run(
+                ["ffmpeg", "-i", audio_file_path, temp_cover_path],
+                text=True,
+                capture_output=True,
+                encoding=encoding,
+                check=False,
+            )
+
+            print(f"\nffmpeg command output: {result.stdout}")
+            print(f"ffmpeg command error: {result.stderr}")
+
+            if result.returncode == 0:
+                cover_dest_path = os.path.join(directory, COVER_FILENAME)
+                shutil.move(temp_cover_path, cover_dest_path)
+                print(
+                    f"Cover image extracted and saved as baseline JPEG in {directory}"
+                )
         except Exception as e:
-            print(f"Error reading FLAC metadata for {file_path}: {e}")
-            return None
+            print(f"Error during extraction: {e}")
+        finally:
+            pass
 
 
 def organize_music_files(root_dir):
     for filename in os.listdir(root_dir):
         file_path = os.path.join(root_dir, filename)
 
-        if os.path.isfile(file_path) and file_path.endswith((".mp3", ".flac")):
+        if os.path.isfile(file_path) and file_path.endswith(SUPPORTED_EXTENSIONS):
             album_tag = get_album_tag(file_path)
 
             if album_tag:
@@ -48,116 +109,24 @@ def organize_music_files(root_dir):
                     shutil.move(file_path, os.path.join(album_folder, filename))
                     print(f"Moved '{filename}' to '{sanitized_album_tag}' folder.")
                 except Exception as e:
-                    print(
-                        f"Error moving '{filename}' to '{sanitized_album_tag}' folder: {e}"
-                    )
-
-                time.sleep(0.1)
+                    print(f"Error moving '{filename}': {e}")
 
 
 def extract_cover_ffmpeg(directory, temp_folder):
     print(f"\nChecking directory: {directory}")
     files = os.listdir(directory)
+    cover_path = os.path.join(directory, COVER_FILENAME)
 
-    if "cover.jpg" in files:
+    if os.path.exists(cover_path):
         print(f"Cover image found in {directory}")
     else:
         image_files = [
-            file for file in files if file.lower().endswith((".jpg", ".jpeg", ".png"))
+            file for file in files if file.lower().endswith(IMAGE_EXTENSIONS)
         ]
-
         if image_files:
-            print("Image files found in the directory:")
-            for i, image_file in enumerate(image_files, start=1):
-                print(f"{i}. {image_file}")
-
-            selected_index = (
-                int(
-                    input(
-                        "Enter the number of the image file you want to use as the cover image: "
-                    )
-                )
-                - 1
-            )
-            selected_image_file = image_files[selected_index]
-
-            cover_dest_path = os.path.join(directory, "cover.jpg")
-            shutil.move(os.path.join(directory, selected_image_file), cover_dest_path)
-            print(f"Selected image file '{selected_image_file}' set as cover image.")
-
-            # Delete other image files
-            for image_file in image_files:
-                if image_file != selected_image_file:
-                    os.remove(os.path.join(directory, image_file))
-                    print(f"Deleted redundant image file '{image_file}'.")
-
+            handle_existing_images(directory, image_files)
         else:
-            flac_files = [file for file in files if file.endswith(".flac")]
-        mp3_files = [file for file in files if file.endswith(".mp3")]
-
-        if flac_files:
-            flac_file_path = os.path.join(directory, flac_files[0])
-            temp_folder_path = os.path.join(temp_folder, "cover_extraction_temp")
-
-            try:
-                os.makedirs(temp_folder_path, exist_ok=True)
-
-                encoding = sys.stdout.encoding or "utf-8"
-                temp_cover_path = os.path.join(temp_folder_path, "cover.jpg")
-                print(f"Running ffmpeg command for '{flac_file_path}'")
-                result = subprocess.run(
-                    ["ffmpeg", "-i", flac_file_path, temp_cover_path],
-                    text=True,
-                    capture_output=True,
-                    encoding=encoding,
-                    check=False,
-                )
-
-                print(f"\nffmpeg command output: {result.stdout}")
-                print(f"ffmpeg command error: {result.stderr}")
-
-                if result.returncode == 0:
-                    cover_dest_path = os.path.join(directory, "cover.jpg")
-                    shutil.move(temp_cover_path, cover_dest_path)
-                    print(
-                        f"FLAC Cover image extracted and saved as baseline JPEG in {directory}"
-                    )
-            except Exception as e:
-                print(f"Error during extraction: {e}")
-            finally:
-                pass
-
-        elif mp3_files:
-            mp3_file_path = os.path.join(directory, mp3_files[0])
-            temp_folder_path = os.path.join(temp_folder, "cover_extraction_temp")
-
-            try:
-                os.makedirs(temp_folder_path, exist_ok=True)
-
-                encoding = sys.stdout.encoding or "utf-8"
-                temp_cover_path = os.path.join(temp_folder_path, "cover.jpg")
-                print(f"Running ffmpeg command for '{mp3_file_path}'")
-                result = subprocess.run(
-                    ["ffmpeg", "-i", mp3_file_path, temp_cover_path],
-                    text=True,
-                    capture_output=True,
-                    encoding=encoding,
-                    check=False,
-                )
-
-                print(f"\nffmpeg command output: {result.stdout}")
-                print(f"ffmpeg command error: {result.stderr}")
-
-                if result.returncode == 0:
-                    cover_dest_path = os.path.join(directory, "cover.jpg")
-                    shutil.move(temp_cover_path, cover_dest_path)
-                    print(
-                        f"MP3 Cover image extracted and saved as baseline JPEG in {directory}"
-                    )
-            except Exception as e:
-                print(f"Error during extraction: {e}")
-            finally:
-                pass
+            handle_audio_files(directory, temp_folder)
 
 
 def restore_backups(root_dir):
@@ -179,6 +148,19 @@ def restore_backups(root_dir):
                     print(f"Backup not found for: '{original_filename}'")
 
 
+def process_cover_image(image_path):
+    try:
+        with Image.open(image_path) as img:
+            img = img.convert("RGB")
+            img = img.resize((200, 200))
+            img.save(image_path, "JPEG", quality=95, subsampling=0)
+            print(
+                f"Modified '{os.path.basename(image_path)}' in {os.path.dirname(image_path)}"
+            )
+    except UnidentifiedImageError as e:
+        print(f"Error processing '{os.path.basename(image_path)}': {str(e)}")
+
+
 def process_images(root_dir, iteration_timeout=5, max_retries=3):
     retries = 0
     processed_folders = set()
@@ -190,30 +172,18 @@ def process_images(root_dir, iteration_timeout=5, max_retries=3):
                 if ".rockbox" in dirs:
                     dirs.remove(".rockbox")
 
-                cover_path = os.path.join(root, "cover.jpg")
+                cover_path = os.path.join(root, COVER_FILENAME)
 
                 if root in processed_folders:
                     continue
 
                 if os.path.exists(cover_path) and os.path.getsize(cover_path) > 0:
                     print(f"\nProcessing folder: {root}")
-
-                    try:
-                        with Image.open(cover_path) as img:
-                            img = img.convert("RGB")
-
-                            img = img.resize((200, 200))
-                            img.save(cover_path, "JPEG", quality=95, subsampling=0)
-                            print(f"Modified 'cover.jpg' in {root}")
-
-                    except UnidentifiedImageError as e:
-                        print(f"Error processing 'cover.jpg': {str(e)}")
-                        continue
-
+                    process_cover_image(cover_path)
                 else:
                     extract_cover_ffmpeg(
                         root,
-                        os.path.join(tempfile.gettempdir(), "cover_extraction_temp"),
+                        os.path.join(tempfile.gettempdir(), TEMP_FOLDER_NAME),
                     )
                     folders_processed += 1
                     processed_folders.add(root)
@@ -225,17 +195,13 @@ def process_images(root_dir, iteration_timeout=5, max_retries=3):
                 print("\nNo folders to process. Exiting.")
                 break
 
-            time.sleep(iteration_timeout)
-
     except KeyboardInterrupt:
         print("\nProcessing interrupted by user.")
 
 
 def clear_temp_directory():
     temp_folder = tempfile.gettempdir()
-    temp_folder_path = os.path.join(
-        temp_folder, "cover_extraction_temp", "cover_extraction_temp"
-    )
+    temp_folder_path = os.path.join(temp_folder, TEMP_FOLDER_NAME)
 
     if os.path.exists(temp_folder_path):
         shutil.rmtree(temp_folder_path)
@@ -248,6 +214,7 @@ def main(root_directory: str) -> None:
     restore_backups(root_directory)
     organize_music_files(root_directory)
     process_images(root_directory)
+    clear_temp_directory()
 
 
 if __name__ == "__main__":
