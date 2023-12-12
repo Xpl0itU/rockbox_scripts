@@ -4,7 +4,6 @@ import subprocess
 import sys
 import tempfile
 from PIL import Image, UnidentifiedImageError
-from eyed3 import id3
 from mutagen import File
 
 SUPPORTED_EXTENSIONS = (".mp3", ".flac")
@@ -21,14 +20,8 @@ def sanitize_filename(filename: str):
 
 def get_album_tag(file_path: str):
     try:
-        if file_path.endswith(".mp3"):
-            audio = id3.Tag()
-            audio.parse(file_path)
-            return audio.album
-
-        if file_path.endswith(".flac"):
-            audio = File(file_path)
-            album_tag = audio.get("album")
+        if file_path.endswith(SUPPORTED_EXTENSIONS):
+            album_tag = File(file_path, easy=True)["album"]
             return album_tag[0] if isinstance(album_tag, list) else album_tag
     except Exception as e:
         print(f"Error reading metadata for {file_path}: {e}")
@@ -78,6 +71,8 @@ def organize_music_files(root_dir: str):
 
         if os.path.isfile(file_path) and file_path.endswith(SUPPORTED_EXTENSIONS):
             album_tag = get_album_tag(file_path)
+            print("____________________________________")
+            print(album_tag)
 
             if album_tag:
                 sanitized_album_tag = sanitize_filename(str(album_tag))
