@@ -1,11 +1,6 @@
 import tempfile
 import sysrsync
-from album_art_fix import (
-    restore_backups,
-    organize_music_files,
-    process_images,
-    clear_temp_directory,
-)
+import album_art_fix
 
 
 def sync_music(source_directory: str, target_directory: str) -> None:
@@ -22,10 +17,7 @@ def sync_music(source_directory: str, target_directory: str) -> None:
         )
 
         print("Extracting covers...")
-        restore_backups(tmpdir)
-        organize_music_files(tmpdir)
-        process_images(tmpdir)
-        clear_temp_directory()
+        album_art_fix.main()
 
         print("Copying files to target directory...")
         sysrsync.run(

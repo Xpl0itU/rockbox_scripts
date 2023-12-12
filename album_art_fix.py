@@ -1,6 +1,5 @@
 import os
 import shutil
-import time
 import subprocess
 import sys
 import tempfile
@@ -14,13 +13,13 @@ COVER_FILENAME = "cover.jpg"
 TEMP_FOLDER_NAME = "cover_extraction_temp"
 
 
-def sanitize_filename(filename):
+def sanitize_filename(filename: str):
     return "".join(
         c if c.isalnum() or c in [".", "_", "-", " "] else "_" for c in filename
     )
 
 
-def get_album_tag(file_path):
+def get_album_tag(file_path: str):
     try:
         if file_path.endswith(".mp3"):
             audio = id3.Tag()
@@ -36,26 +35,7 @@ def get_album_tag(file_path):
         return None
 
 
-def handle_existing_images(directory, image_files):
-    print("Image files found in the directory:")
-    for i, image_file in enumerate(image_files, start=1):
-        print(f"{i}. {image_file}")
-
-    selected_index = int(input("Enter the number of the image file: ")) - 1
-    selected_image_file = image_files[selected_index]
-
-    cover_dest_path = os.path.join(directory, COVER_FILENAME)
-    shutil.move(os.path.join(directory, selected_image_file), cover_dest_path)
-    print(f"Selected image file '{selected_image_file}' set as cover image.")
-
-    # Delete other image files
-    for image_file in image_files:
-        if image_file != selected_image_file:
-            os.remove(os.path.join(directory, image_file))
-            print(f"Deleted redundant image file '{image_file}'.")
-
-
-def handle_audio_files(directory, temp_folder):
+def handle_audio_files(directory: str, temp_folder: str):
     audio_files = [
         file for file in os.listdir(directory) if file.endswith(SUPPORTED_EXTENSIONS)
     ]
@@ -92,7 +72,7 @@ def handle_audio_files(directory, temp_folder):
             pass
 
 
-def organize_music_files(root_dir):
+def organize_music_files(root_dir: str):
     for filename in os.listdir(root_dir):
         file_path = os.path.join(root_dir, filename)
 
@@ -112,48 +92,12 @@ def organize_music_files(root_dir):
                     print(f"Error moving '{filename}': {e}")
 
 
-def extract_cover_ffmpeg(directory, temp_folder):
-    print(f"\nChecking directory: {directory}")
-    files = os.listdir(directory)
-    cover_path = os.path.join(directory, COVER_FILENAME)
-
-    if os.path.exists(cover_path):
-        print(f"Cover image found in {directory}")
-    else:
-        image_files = [
-            file for file in files if file.lower().endswith(IMAGE_EXTENSIONS)
-        ]
-        if image_files:
-            handle_existing_images(directory, image_files)
-        else:
-            handle_audio_files(directory, temp_folder)
-
-
-def restore_backups(root_dir):
-    print("\nRestoring backups...")
-    for root, dirs, files in os.walk(root_dir):
-        if ".rockbox" in dirs:
-            dirs.remove(".rockbox")
-
-        for file in files:
-            if file.lower().endswith((".jpg.backup", ".jpeg.backup", ".png.backup")):
-                backup_path = os.path.join(root, file)
-                original_filename = sanitize_filename(file[:-7])
-                original_path = os.path.join(root, original_filename)
-
-                if os.path.exists(backup_path):
-                    shutil.move(backup_path, original_path)
-                    print(f"Restored: '{original_filename}'")
-                else:
-                    print(f"Backup not found for: '{original_filename}'")
-
-
-def process_cover_image(image_path):
+def process_cover_image(image_path: str):
     try:
         with Image.open(image_path) as img:
             img = img.convert("RGB")
             img = img.resize((200, 200))
-            img.save(image_path, "JPEG", quality=95, subsampling=0)
+            img.save(image_path, "JPEG", quality=100, subsampling=0)
             print(
                 f"Modified '{os.path.basename(image_path)}' in {os.path.dirname(image_path)}"
             )
@@ -161,39 +105,35 @@ def process_cover_image(image_path):
         print(f"Error processing '{os.path.basename(image_path)}': {str(e)}")
 
 
-def process_images(root_dir, iteration_timeout=5, max_retries=3):
-    retries = 0
+def process_images(root_dir: str):
     processed_folders = set()
     try:
-        while retries <= max_retries:
-            folders_processed = 0
+        folders_processed = 0
 
-            for root, dirs, files in os.walk(root_dir):
-                if ".rockbox" in dirs:
-                    dirs.remove(".rockbox")
+        for root, dirs, _ in os.walk(root_dir):
+            if ".rockbox" in dirs:
+                dirs.remove(".rockbox")
 
-                cover_path = os.path.join(root, COVER_FILENAME)
+            cover_path = os.path.join(root, COVER_FILENAME)
 
-                if root in processed_folders:
-                    continue
+            if root in processed_folders:
+                continue
 
-                if os.path.exists(cover_path) and os.path.getsize(cover_path) > 0:
-                    print(f"\nProcessing folder: {root}")
-                    process_cover_image(cover_path)
-                else:
-                    extract_cover_ffmpeg(
-                        root,
-                        os.path.join(tempfile.gettempdir(), TEMP_FOLDER_NAME),
-                    )
-                    folders_processed += 1
-                    processed_folders.add(root)
-
-            if folders_processed > 0:
-                print(f"\n{folders_processed} folder(s) processed.")
-                retries = 0
+            if os.path.exists(cover_path) and os.path.getsize(cover_path) > 0:
+                print(f"\nProcessing folder: {root}")
+                process_cover_image(cover_path)
             else:
-                print("\nNo folders to process. Exiting.")
-                break
+                handle_audio_files(
+                    root,
+                    os.path.join(tempfile.gettempdir(), TEMP_FOLDER_NAME),
+                )
+                folders_processed += 1
+                processed_folders.add(root)
+
+        if folders_processed > 0:
+            print(f"\n{folders_processed} folder(s) processed.")
+        else:
+            print("\nNo folders to process. Exiting.")
 
     except KeyboardInterrupt:
         print("\nProcessing interrupted by user.")
@@ -211,7 +151,6 @@ def clear_temp_directory():
 
 
 def main(root_directory: str) -> None:
-    restore_backups(root_directory)
     organize_music_files(root_directory)
     process_images(root_directory)
     clear_temp_directory()
