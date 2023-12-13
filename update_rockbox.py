@@ -9,10 +9,19 @@ from zipfile import ZipFile
 def update_rockbox(mount_point: str) -> None:
     rockbox_info = os.path.join(mount_point, ".rockbox", "rockbox-info.txt")
 
+    detected_device = None
+    current_svn = None
+    with open(rockbox_info, "r") as rockbox_info_file:
+        rockbox_info_file_contents = rockbox_info_file.read()
+        detected_device = (
+            rockbox_info_file_contents.split("Target:")[1].split("\n")[0].strip()
+        )
+        current_svn = rockbox_info_file_contents.split("Version:")[1][:11].strip()
+
     build_info = (
         BeautifulSoup(
             requests.get(
-                "https://www.rockbox.org/dl.cgi?bin=ipod6g",
+                f"https://www.rockbox.org/dl.cgi?bin={detected_device}",
                 headers={
                     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36"
                 },
@@ -27,14 +36,6 @@ def update_rockbox(mount_point: str) -> None:
     )
 
     latest_svn = re.findall(r"[a-z0-9]{10}", build_info)[0]
-    detected_device = None
-    current_svn = None
-    with open(rockbox_info, "r") as rockbox_info_file:
-        rockbox_info_file_contents = rockbox_info_file.read()
-        detected_device = (
-            rockbox_info_file_contents.split("Target:")[1].split("\n")[0].strip()
-        )
-        current_svn = rockbox_info_file_contents.split("Version:")[1][:11].strip()
 
     print(f"\nDetected Device: {detected_device}")
     print(f"Latest Rockbox SVN Revision: {latest_svn}")
