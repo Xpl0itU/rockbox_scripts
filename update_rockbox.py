@@ -16,7 +16,7 @@ def update_rockbox(mount_point: str) -> None:
                 headers={
                     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36"
                 },
-            ).text,
+            ).content,
             features="html.parser",
         )
         .find("table", class_="rockbox")
@@ -27,15 +27,23 @@ def update_rockbox(mount_point: str) -> None:
     )
 
     latest_svn = re.findall(r"[a-z0-9]{10}", build_info)[0]
-    current_svn = open(rockbox_info).read().split("Version:")[1][:11].strip()
+    detected_device = None
+    current_svn = None
+    with open(rockbox_info, "r") as rockbox_info_file:
+        rockbox_info_file_contents = rockbox_info_file.read()
+        detected_device = (
+            rockbox_info_file_contents.split("Target:")[1].split("\n")[0].strip()
+        )
+        current_svn = rockbox_info_file_contents.split("Version:")[1][:11].strip()
 
-    print(f"\nLatest Rockbox SVN Revision: {latest_svn}")
+    print(f"\nDetected Device: {detected_device}")
+    print(f"Latest Rockbox SVN Revision: {latest_svn}")
     print(f"Current Rockbox SVN Revision: {current_svn}\n")
 
     if current_svn and latest_svn:
         if current_svn != latest_svn:
             print("Updating iPod rockbox to the latest revision...")
-            dl_url = "http://download.rockbox.org/daily/ipod6g/rockbox-ipod6g.zip"
+            dl_url = f"http://download.rockbox.org/daily/{detected_device}/rockbox-{detected_device}.zip"
             zip_name = os.path.basename(dl_url)
 
             with tempfile.TemporaryDirectory() as temp_dir:
