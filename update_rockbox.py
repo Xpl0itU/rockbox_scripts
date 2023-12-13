@@ -43,7 +43,7 @@ def update_rockbox(mount_point: str) -> None:
 
     if current_svn and latest_svn:
         if current_svn != latest_svn:
-            print("Updating iPod rockbox to the latest revision...")
+            print("Updating Rockbox to the latest revision...")
             dl_url = f"http://download.rockbox.org/daily/{detected_device}/rockbox-{detected_device}.zip"
             zip_name = os.path.basename(dl_url)
 

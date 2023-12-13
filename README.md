@@ -1,6 +1,6 @@
 # Rockbox Scripts
 
-A collection of Python scripts for managing and updating Rockbox firmware on iPod devices, along with tools for organizing music files.
+A collection of Python scripts for managing and updating Rockbox firmware on Rockbox devices, along with tools for organizing music files.
 
 ## Scripts
 
@@ -26,12 +26,12 @@ python sync_music.py /path/to/source_directory /path/to/target_directory
 
 ### `update_rockbox.py`
 
-This script updates the Rockbox firmware on an iPod or any other Rockbox supported device, it autodetects the current device and updates it accordingly. It checks for the latest Rockbox SVN revision, compares it with the current revision, and updates the firmware if necessary.
+This script updates the Rockbox firmware on any Rockbox supported device, it autodetects the current device and updates it accordingly. It checks for the latest Rockbox SVN revision, compares it with the current revision, and updates the firmware if necessary.
 
 #### Usage
 
 ```bash
-python update_rockbox.py /path/to/ipod_mount_point
+python update_rockbox.py /path/to/rockbox_mount_point
 ```
 
 ## Getting Started
