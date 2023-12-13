@@ -41,9 +41,14 @@ def update_rockbox(mount_point: str) -> None:
             with tempfile.TemporaryDirectory() as temp_dir:
                 temp_zip_path = os.path.join(temp_dir, zip_name)
                 with open(temp_zip_path, "wb") as f:
-                    f.write(requests.get(dl_url, headers={
-                    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36"
-                }).content)
+                    f.write(
+                        requests.get(
+                            dl_url,
+                            headers={
+                                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36"
+                            },
+                        ).content
+                    )
 
                 with ZipFile(temp_zip_path, "r") as zip_ref:
                     zip_ref.extractall(mount_point)
