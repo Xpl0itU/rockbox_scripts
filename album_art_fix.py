@@ -71,8 +71,6 @@ def organize_music_files(root_dir: str):
 
         if os.path.isfile(file_path) and file_path.endswith(SUPPORTED_EXTENSIONS):
             album_tag = get_album_tag(file_path)
-            print("____________________________________")
-            print(album_tag)
 
             if album_tag:
                 sanitized_album_tag = sanitize_filename(str(album_tag))
