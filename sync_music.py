@@ -13,7 +13,15 @@ def sync_music(source_directory: str, target_directory: str) -> None:
             source=source_directory,
             destination=tmpdir,
             sync_source_contents=True,
-            options=["-ahS", "--delete", "--inplace", "--no-compress"],
+            options=[
+                "-ahS",
+                "--delete",
+                "--inplace",
+                "--no-compress",
+                "--no-p",
+                "--no-g",
+                "--no-o",
+            ],
         )
 
         print("Extracting covers...")
@@ -24,7 +32,16 @@ def sync_music(source_directory: str, target_directory: str) -> None:
             source=tmpdir,
             destination=target_directory,
             sync_source_contents=True,
-            options=["-avhPS", "--delete", "--inplace", "--no-compress"],
+            options=[
+                "-avhPS",
+                "--delete",
+                "--inplace",
+                "--no-compress",
+                "--modify-window=2",
+                "--no-p",
+                "--no-g",
+                "--no-o",
+            ],
         )
 
 
