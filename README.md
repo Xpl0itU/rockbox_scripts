@@ -4,17 +4,17 @@ A collection of Python scripts for managing and updating Rockbox firmware on Roc
 
 ## Scripts
 
-## `app.py`
+### `app.py`
 
 This script serves as a unified entry point to perform multiple tasks related to Rockbox devices, music synchronization, and playlist management.
 
-### Usage
+#### Usage
 
 ```bash
 python app.py --playlists-directory-name "Playlists" --music-directory-name "Music" /path/to/rockbox_mount /path/to/music
 ```
 
-### Parameters
+#### Parameters
 
 - mount_point: The mount point of the Rockbox device.
 - source_music_directory: The source directory containing the music files to be synchronized.
