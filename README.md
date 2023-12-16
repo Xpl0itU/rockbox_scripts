@@ -16,10 +16,10 @@ python app.py --playlists-directory-name "Playlists" --music-directory-name "Mus
 
 ### Parameters
 
-mount_point: The mount point of the Rockbox device.
-source_music_directory: The source directory containing the music files to be synchronized.
-playlists_directory_name (optional): The name of the directory where playlists will be exported (default is "Playlists").
-music_directory_name (optional): The name of the directory on the Rockbox device where music will be synchronized (default is "Music").
+- mount_point: The mount point of the Rockbox device.
+- source_music_directory: The source directory containing the music files to be synchronized.
+- playlists_directory_name (optional): The name of the directory where playlists will be exported (default is "Playlists").
+- music_directory_name (optional): The name of the directory on the Rockbox device where music will be synchronized (default is "Music").
 
 ### `album_art_fix.py`
 
