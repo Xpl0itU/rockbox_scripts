@@ -1,6 +1,6 @@
+import album_art_fix
 import tempfile
 import sysrsync
-import album_art_fix
 
 
 def sync_music(source_directory: str, target_directory: str) -> None:
@@ -13,18 +13,18 @@ def sync_music(source_directory: str, target_directory: str) -> None:
             source=source_directory,
             destination=tmpdir,
             sync_source_contents=True,
-            options=["-ahPWS", "--delete", "--inplace", "--no-compress"],
+            options=["-ahS", "--delete", "--inplace", "--no-compress"],
         )
 
         print("Extracting covers...")
-        album_art_fix.main()
+        album_art_fix.main(tmpdir)
 
         print("Copying files to target directory...")
         sysrsync.run(
             source=tmpdir,
             destination=target_directory,
             sync_source_contents=True,
-            options=["-avhPWS", "--delete", "--inplace", "--no-compress"],
+            options=["-avhPS", "--delete", "--inplace", "--no-compress"],
         )
 
 

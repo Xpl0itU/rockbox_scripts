@@ -18,6 +18,9 @@ def update_rockbox(mount_point: str) -> None:
         )
         current_svn = rockbox_info_file_contents.split("Version:")[1][:11].strip()
 
+    if not detected_device or not current_svn:
+        raise Exception("Unable to determine Rockbox device or SVN revision.")
+
     build_info = (
         BeautifulSoup(
             requests.get(

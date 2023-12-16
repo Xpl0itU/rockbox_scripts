@@ -36,3 +36,6 @@ venv.bak/
 
 # VSCode directory
 .vscode/
+
+# Playlist files
+*.m3u

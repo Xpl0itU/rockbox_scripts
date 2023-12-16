@@ -4,6 +4,23 @@ A collection of Python scripts for managing and updating Rockbox firmware on Roc
 
 ## Scripts
 
+## `app.py`
+
+This script serves as a unified entry point to perform multiple tasks related to Rockbox devices, music synchronization, and playlist management.
+
+### Usage
+
+```bash
+python app.py --playlists-directory-name "Playlists" --music-directory-name "Music" /path/to/rockbox_mount /path/to/music
+```
+
+### Parameters
+
+mount_point: The mount point of the Rockbox device.
+source_music_directory: The source directory containing the music files to be synchronized.
+playlists_directory_name (optional): The name of the directory where playlists will be exported (default is "Playlists").
+music_directory_name (optional): The name of the directory on the Rockbox device where music will be synchronized (default is "Music").
+
 ### `album_art_fix.py`
 
 This script organizes music files, extracts cover images from audio files, and processes the cover images to ensure a consistent format. It is designed to enhance the organization of a music collection.
@@ -12,6 +29,16 @@ This script organizes music files, extracts cover images from audio files, and p
 
 ```bash
 python album_art_fix.py /path/to/music_directory
+```
+
+### `mac_playlist_export.py`
+
+This script organizes exports all the user playlists in the macOS Music app to the specified directory as m3u.
+
+#### Usage
+
+```bash
+python mac_playlist_export.py /path/to/store_playlists
 ```
 
 ### `sync_music.py`
