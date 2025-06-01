@@ -3,42 +3,69 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import base64
+import logging
+import PIL
 from PIL import Image, UnidentifiedImageError
 from mutagen import File
+from mutagen.flac import Picture, error as FLACError
 
-SUPPORTED_EXTENSIONS = (".mp3", ".flac")
+SUPPORTED_EXTENSIONS = (".mp3", ".flac", ".opus")
 IMAGE_EXTENSIONS = (".jpg", ".jpeg", ".png")
 COVER_FILENAME = "cover.jpg"
 TEMP_FOLDER_NAME = "cover_extraction_temp"
 
+# Existing functions...
 
-def sanitize_filename(filename: str):
-    return "".join(
-        c if c.isalnum() or c in [".", "_", "-", " "] else "_" for c in filename
-    )
+def extract_album_art_from_opus(file_path: str):
+    file_ = File(file_path)  # Works with OggVorbis, FLAC, and potentially OggOpus files if tagged similarly
 
+    # Attempt to extract 'METADATA_BLOCK_PICTURE' or equivalent tagged images
+    pictures = file_.get("metadata_block_picture", []) + file_.tags.get("METADATA_BLOCK_PICTURE", [])
+    for b64_data in pictures:
+        try:
+            data = base64.b64decode(b64_data)
+        except (TypeError, ValueError):
+            continue
 
-def get_album_tag(file_path: str):
-    try:
-        if file_path.endswith(SUPPORTED_EXTENSIONS):
-            album_tag = File(file_path, easy=True)["album"]
-            return album_tag[0] if isinstance(album_tag, list) else album_tag
-    except Exception as e:
-        print(f"Error reading metadata for {file_path}: {e}")
-        return None
+        try:
+            picture = Picture(data)
+        except FLACError:
+            continue
 
+        extensions = {
+            "image/jpeg": "jpeg",
+            "image/png": "png",
+            "image/gif": "gif",
+        }
+        ext = extensions.get(picture.mime, "jpeg")
+
+        output_filename = os.path.splitext(os.path.basename(file_path))[0] + f'.{ext}'
+        with open(output_filename, "wb") as h:
+            h.write(picture.data)
+        print(f"Cover image extracted from {file_path} and saved as {output_filename}")
+         # Immediately resize the image after saving
+        process_cover_image(output_filename)
+        return output_filename
+
+    print(f"No suitable album art found in {file_path}")
+    return None
 
 def handle_audio_files(directory: str, temp_folder: str):
     audio_files = [
         file for file in os.listdir(directory) if file.endswith(SUPPORTED_EXTENSIONS)
     ]
-    if audio_files:
-        audio_file_path = os.path.join(directory, audio_files[0])
-        temp_folder_path = os.path.join(temp_folder, TEMP_FOLDER_NAME)
 
+    opus_files = [f for f in audio_files if f.endswith(".opus")]
+    non_opus_files = [f for f in audio_files if f.endswith((".mp3", ".flac"))]
+
+    # Try non-Opus files (MP3/FLAC) first
+    if non_opus_files:
+        audio_file = non_opus_files[0]  # Process the first non-Opus file
+        audio_file_path = os.path.join(directory, audio_file)
+        temp_folder_path = os.path.join(temp_folder, TEMP_FOLDER_NAME)
         try:
             os.makedirs(temp_folder_path, exist_ok=True)
-
             encoding = sys.stdout.encoding or "utf-8"
             temp_cover_path = os.path.join(temp_folder_path, COVER_FILENAME)
             print(f"Running ffmpeg command for '{audio_file_path}'")
@@ -49,21 +76,40 @@ def handle_audio_files(directory: str, temp_folder: str):
                 encoding=encoding,
                 check=False,
             )
-
             print(f"\nffmpeg command output: {result.stdout}")
             print(f"ffmpeg command error: {result.stderr}")
-
             if result.returncode == 0:
                 cover_dest_path = os.path.join(directory, COVER_FILENAME)
                 shutil.move(temp_cover_path, cover_dest_path)
-                print(
-                    f"Cover image extracted and saved as baseline JPEG in {directory}"
-                )
+                print(f"Cover image extracted via ffmpeg and saved as baseline JPEG in {directory}")
+                return # Found cover, exit
         except Exception as e:
-            print(f"Error during extraction: {e}")
-        finally:
-            pass
+            print(f"Error during ffmpeg extraction: {e}")
 
+    # If ffmpeg failed or no non-Opus files, try Opus files
+    for audio_file in opus_files:
+        audio_file_path = os.path.join(directory, audio_file)
+        cover_path = extract_album_art_from_opus(audio_file_path)
+        if cover_path:
+            cover_dest_path = os.path.join(directory, COVER_FILENAME)
+            shutil.move(cover_path, cover_dest_path)
+            print(f"Cover image extracted from .opus file and moved to {cover_dest_path}")
+            return  # Found cover, exit
+
+
+def sanitize_filename(filename: str): # Added from original script, was missing in user's version
+    return "".join(
+        c if c.isalnum() or c in [".", "_", "-", " "] else "_" for c in filename
+    )
+
+def get_album_tag(file_path: str): # Added from original script, was missing in user's version
+    try:
+        if file_path.endswith(SUPPORTED_EXTENSIONS):
+            album_tag = File(file_path, easy=True)["album"]
+            return album_tag[0] if isinstance(album_tag, list) else album_tag
+    except Exception as e:
+        print(f"Error reading metadata for {file_path}: {e}")
+        return None
 
 def organize_music_files(root_dir: str):
     for filename in os.listdir(root_dir):
@@ -84,7 +130,6 @@ def organize_music_files(root_dir: str):
                 except Exception as e:
                     print(f"Error moving '{filename}': {e}")
 
-
 def process_cover_image(image_path: str):
     try:
         with Image.open(image_path) as img:
@@ -96,7 +141,6 @@ def process_cover_image(image_path: str):
             )
     except UnidentifiedImageError as e:
         print(f"Error processing '{os.path.basename(image_path)}': {str(e)}")
-
 
 def process_images(root_dir: str):
     processed_folders = set()
@@ -131,7 +175,6 @@ def process_images(root_dir: str):
     except KeyboardInterrupt:
         print("\nProcessing interrupted by user.")
 
-
 def clear_temp_directory():
     temp_folder = tempfile.gettempdir()
     temp_folder_path = os.path.join(temp_folder, TEMP_FOLDER_NAME)
@@ -142,12 +185,10 @@ def clear_temp_directory():
     else:
         print(f"Directory does not exist: {temp_folder_path}")
 
-
 def main(root_directory: str) -> None:
     organize_music_files(root_directory)
     process_images(root_directory)
     clear_temp_directory()
-
 
 if __name__ == "__main__":
     import typer
