@@ -31,12 +31,6 @@ This script organizes music files, extracts cover images from audio files, and p
 python album_art_fix.py /path/to/music_directory
 ```
 
-#### Usage
-
-```bash
-python album_art_fix_opus.py /path/to/music_directory
-```
-
 ### `mac_playlist_export.py`
 
 This script organizes exports all the user playlists in the macOS Music app to the specified directory as m3u.
