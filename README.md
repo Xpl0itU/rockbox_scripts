@@ -30,9 +30,6 @@ This script organizes music files, extracts cover images from audio files, and p
 ```bash
 python album_art_fix.py /path/to/music_directory
 ```
-### `album_art_fix_opus.py`
-
-Mostly copied from the above script. Extracts cover images from .opus files, and processes the images into a 200x200 cover.jpg file that works well with Rockbox.
 
 #### Usage
 
