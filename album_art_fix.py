@@ -10,7 +10,7 @@ from mutagen import File
 from mutagen.flac import Picture as FLACPicture, error as FLACError # Renamed Picture
 from mutagen.id3 import APIC # For MP3 APIC frames
 
-SUPPORTED_EXTENSIONS = (".mp3", ".flac", ".opus")
+SUPPORTED_EXTENSIONS = (".mp3", ".flac", ".opus", ".ogg")
 IMAGE_EXTENSIONS = (".jpg", ".jpeg", ".png")
 COVER_FILENAME = "cover.jpg"
 TEMP_FOLDER_NAME = "cover_extraction_temp" # Used by clear_temp_directory and new extract_art_mutagen
@@ -40,7 +40,7 @@ def extract_art_mutagen(file_path: str) -> str | None:
                 for pic in file_obj.pictures:
                     pictures_data.append({'data': pic.data, 'mime': pic.mime})
                     break # Take the first picture
-        elif file_ext == ".opus":
+        elif file_ext in (".opus", ".ogg"):
             # Opus stores pictures in METADATA_BLOCK_PICTURE Vorbis comments, often base64 encoded FLAC Picture blocks
             if hasattr(file_obj, 'tags') and file_obj.tags:
                 # Look for list-type tags first
