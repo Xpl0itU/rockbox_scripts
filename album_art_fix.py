@@ -3,14 +3,14 @@ import shutil
 import sys # subprocess is removed, sys might still be used by other parts or can be removed if not.
 import tempfile
 import base64
-import logging # logging is imported but not used, consider removing if not planned for use.
 import PIL
 from PIL import Image, UnidentifiedImageError
 from mutagen import File
 from mutagen.flac import Picture as FLACPicture, error as FLACError # Renamed Picture
 from mutagen.id3 import APIC # For MP3 APIC frames
+from mutagen.mp4 import MP4, MP4Cover
 
-SUPPORTED_EXTENSIONS = (".mp3", ".flac", ".opus", ".ogg")
+SUPPORTED_EXTENSIONS = (".mp3", ".flac", ".opus", ".ogg", ".m4a")
 IMAGE_EXTENSIONS = (".jpg", ".jpeg", ".png")
 COVER_FILENAME = "cover.jpg"
 TEMP_FOLDER_NAME = "cover_extraction_temp" # Used by clear_temp_directory and new extract_art_mutagen
@@ -60,7 +60,20 @@ def extract_art_mutagen(file_path: str) -> str | None:
                     except (TypeError, ValueError, base64.binascii.Error, FLACError) as e:
                         # print(f"Could not parse Opus picture data from {file_path}: {e}")
                         continue
-                # Removed 'if pictures_data: break' as it was redundant due to outer break.
+        elif file_ext == ".m4a":
+            # M4A (MP4 audio) cover extraction
+            try:
+                mp4_obj = MP4(file_path)
+                covr = mp4_obj.tags.get("covr")
+                if covr:
+                    cover_obj = covr[0]
+                    if isinstance(cover_obj, MP4Cover):
+                        # Determine MIME type by cover_obj.imageformat
+                        # 13 is JPEG, 14 is PNG (see mutagen.mp4.MP4Cover)
+                        mime = "image/jpeg" if cover_obj.imageformat == MP4Cover.FORMAT_JPEG else "image/png"
+                        pictures_data.append({'data': cover_obj, 'mime': mime})
+            except Exception as e:
+                print(f"Error extracting cover from M4A: {file_path}: {e}")
 
         if not pictures_data:
             # print(f"No embedded art found in {file_path} using mutagen.") # Reduce verbosity
