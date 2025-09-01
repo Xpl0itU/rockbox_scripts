@@ -1,6 +1,6 @@
 sysrsync==1.1.1
 typer==0.9.0
-Pillow==10.1.0
+Pillow==10.4.0
 mutagen==1.47.0
 requests==2.31.0
 beautifulsoup4==4.12.2
